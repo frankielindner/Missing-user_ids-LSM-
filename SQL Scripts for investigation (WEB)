@@ -1,0 +1,101 @@
+SELECT				
+user_id as UserID,				
+anonymous_id,				
+date(timestamp) as day,				
+UPPER(COALESCE(context_traits_geo, context_traits_sample_geo)) AS Geo,				
+context_traits_browser				
+FROM `livescore-web.unified_segment.process_success`				
+WHERE timestamp >= "2023-10-05"				
+and feature = "register"				
+and context_device_type is null				
+and context_traits_geo = "GB"				
+
+
+
+
+SELECT			
+userID,			
+date(acquisitionDateTime) as day,			
+countryCode AS Geo,			
+platform,			
+FROM `ls-africa-data-eu-live.lithium_warehouse.User`			
+WHERE DATE(acquisitionDateTime) >= "2023-10-05"			
+and domain IN ("LiveScoreMedia")			
+AND isTempLSMAccount IS NOT TRUE			
+AND istest IS FALSE			
+and device.platform IN ("Desktop", "Mobile)			
+and countryCode = "GB"			
+
+
+
+WITH				
+lithium AS(				
+SELECT				
+userid,				
+domain,				
+acquisitiondatetime,				
+device.platform AS platform,				
+istest				
+FROM				
+`ls-africa-data-eu-live.lithium_warehouse.User` User				
+WHERE DATE(acquisitionDateTime) >= "2023-10-09"				
+and domain IN ("LiveScoreMedia")				
+AND isTempLSMAccount IS NOT TRUE				
+AND istest IS FALSE				
+and upper(countryCode) in ('GB','UK','IE') ),				
+segment AS(				
+SELECT				
+DATE(timestamp) AS AcquisitionDate,				
+user_id,				
+anonymous_id,				
+context_device_type				
+FROM				
+`livescore-web.unified_segment.tracks`				
+Where date(timestamp) >= "2023-10-09"				
+GROUP BY				
+1,2,3,4				
+ORDER BY				
+1 DESC),				
+signed_up AS(				
+SELECT				
+DATE(timestamp) AS AcquisitionDate,				
+user_id,				
+anonymous_id,				
+context_device_type				
+FROM				
+`livescore-web.unified_segment.process_success`				
+WHERE date(timestamp) = "2023-10-09"				
+and event IN ("process_success")				
+AND feature IN ("register")				
+GROUP BY				
+1,2,3,4				
+ORDER BY				
+1 DESC)				
+SELECT				
+-- DATE(acquisitionDateTime) AS date,				
+--domain,				
+DISTINCT lithium.userID AS Lithium_user,				
+lithium.platform as lithium_platform,				
+segment.user_id AS segment_users_tracks,				
+segment.anonymous_id as segment_users_tracks_anonymous_id,				
+segment.context_device_type as segment_tracks_platform,				
+signed_up.user_id as signed_up_present,				
+signed_up.anonymous_id as signed_up_present_anonymous_id,				
+signed_up.context_device_type as signed_up_platform				
+FROM				
+lithium				
+LEFT JOIN				
+segment				
+ON				
+CAST(lithium.userID AS string) = segment.user_id				
+LEFT JOIN				
+signed_up				
+ON				
+CAST(lithium.userID AS string) = signed_up.user_id				
+WHERE				
+DATE(acquisitionDateTime) >= "2023-10-09"				
+and lower(platform) in ('desktop')				
+-- GROUP BY				
+-- 1,2				
+ORDER BY				
+1				
